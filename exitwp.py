@@ -97,8 +97,20 @@ def parse_wp_xml(file):
 
     def parse_items():
         export_items = []
+        price = 0
         xml_items = c.findall('item')
         for i in xml_items:
+            namespaces={'wp':'http://wordpress.org/export/1.2/'}
+            print 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+            # Find price for products 
+            wp_postmetas = i.findall('wp:postmeta', namespaces)
+            for postmeta in wp_postmetas:
+                meta_key = postmeta.find('wp:meta_key', namespaces)
+                _regular_price = postmeta.find('wp:meta_value', namespaces) 
+                if(meta_key.text.strip() == '_regular_price'):
+                    priceString = _regular_price.text
+                    price = 0 if priceString is None else int(priceString.strip()) 
+                    print price
             taxanomies = i.findall('category')
             export_taxanomies = {}
             for tax in taxanomies:
@@ -123,7 +135,6 @@ def parse_wp_xml(file):
                     tag = q
                 try:
                     result = (i.find(q, ns) or i.find(tag) or i.find(ns[namespace] + tag)).text.strip()
-                    print result.encode('utf-8')
                 except AttributeError:
                     result = 'No Content Found'
                     if empty:
@@ -146,10 +157,12 @@ def parse_wp_xml(file):
                         img_srcs.append(img['src'])
                 except:
                     print 'could not parse html: ' + body
-            print  gi 
+            #  print 'gi'
+            #  print  gi('wp:meta_key')
 
             excerpt = gi('excerpt:encoded', empty=True)
-
+            # price =  gi('wp:meta_key') == u'_regular_price'
+            
             export_item = {
                 'title': gi('title'),
                 'link': gi('link'),
@@ -163,6 +176,7 @@ def parse_wp_xml(file):
                 'comments': gi('wp:comment_status') == u'open',
                 'taxanomies': export_taxanomies,
                 'body': body,
+                'price':  price, 
                 'excerpt': excerpt,
                 'img_srcs': img_srcs
             }
@@ -216,8 +230,8 @@ def write_jekyll(data, target_format):
                 except:
                     dt = datetime.today()
                     print 'Wrong date in', item['title']
-                uid.append(dt.strftime('%Y-%m-%d'))
-                uid.append('-')
+                #  uid.append(dt.strftime('%Y-%m-%d'))
+                #  uid.append('-')
             s_title = item['slug']
             if s_title is None or s_title == '':
                 s_title = item['title']
@@ -303,10 +317,11 @@ def write_jekyll(data, target_format):
             'author': i['author'],
             'date': date,
             'slug': i['slug'],
-            #  'price': i[]
+             'price': i['price']
             #  'wordpress_id': int(i['wp_id']),
-
-            'comments': i['comments'],
+            #  'excerpt': i['excerpt'],
+            #  'img_srcs': i['img_srcs'],
+            #  'comments': i['comments'],
         }
         if len(i['excerpt']) > 0:
             yaml_header['excerpt'] = i['excerpt']
